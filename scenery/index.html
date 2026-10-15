@@ -681,24 +681,16 @@
                 property: 'Scenery Guest Houses',
                 _subject: 'ACCEPTED: Scenery Guest Houses - ' + pkg,
                 _template: 'table',
-                // FormSubmit sends this as an HTML email, so line breaks must be <br> (plain \n is ignored)
-                _autoresponse: [
-                    'Hi ' + name + ',',
-                    '',
-                    'Thank you for accepting the IT Support proposal for Scenery Guest Houses.',
-                    '',
-                    '<strong>What happens next:</strong>',
-                    '1. We will be in touch shortly to schedule the on-site assessment visit.',
-                    '2. We confirm supported devices, service hours and priorities together.',
-                    '3. Your dedicated technician is assigned and the retainer starts.',
-                    '',
-                    'If any detail is wrong, just reply to this email.',
-                    '',
-                    'Warm regards,',
-                    '<strong>Maxwell Rethabile Borotho</strong>',
-                    'iNSIGHTS BI &amp; Analytics',
-                    'insights.co.ls | +266 6949 0014'
-                ].join('<br>')
+                // FormSubmit escapes HTML and collapses newlines in this message, so it is written as flowing text
+                // (no tags, no reliance on line breaks).
+                _autoresponse:
+                    'Hi ' + name + ', thank you for accepting the IT Support proposal for Scenery Guest Houses. ' +
+                    'What happens next: ' +
+                    '① We will be in touch shortly to schedule the on-site assessment visit. ' +
+                    '② We confirm supported devices, service hours and priorities together. ' +
+                    '③ Your dedicated technician is assigned and the retainer starts. ' +
+                    'If any detail is wrong, just reply to this email. ' +
+                    'Warm regards, Maxwell Rethabile Borotho — iNSIGHTS BI & Analytics — insights.co.ls — +266 6949 0014'
             };
             if (location.protocol !== 'file:') {
                 fields._next = location.origin + location.pathname +
