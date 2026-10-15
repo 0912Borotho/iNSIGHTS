@@ -723,8 +723,17 @@
                     email.replace(/</g, '&lt;') + '</strong>.');
                 form.reset();
             } catch (err) {
+                let reason = (err && err.message) ? err.message : 'Unknown error';
+                if (location.protocol === 'file:') {
+                    reason = 'This page is open as a local file. Automatic sending only works once the page is hosted online.';
+                } else if (/activat/i.test(reason)) {
+                    reason = 'The form needs one-time activation: check the inbox of borothomaxwell@gmail.com for an activation email from FormSubmit, click it, then submit again.';
+                } else if (reason === 'Failed to fetch') {
+                    reason = 'The sending service could not be reached (network or blocker).';
+                }
                 showModal(false, 'We could not send that automatically',
-                    'Nothing has been submitted yet. Please use the button below to email your acceptance to iNSIGHTS directly, or call +266 6949 0014.',
+                    'Nothing has been submitted yet. Please use the button below to email your acceptance to iNSIGHTS directly, or call +266 6949 0014.' +
+                    '<span class="block mt-3 text-xs text-slate-400">Reason: ' + String(reason).replace(/</g, '&lt;') + '</span>',
                     mailto);
             } finally {
                 btn.disabled = false;
