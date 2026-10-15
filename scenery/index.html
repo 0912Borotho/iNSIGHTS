@@ -651,9 +651,6 @@
             }, 1500);
         }
 
-        // Real delivery: FormSubmit emails the submission to iNSIGHTS and sends the signer a personalised confirmation.
-        const FORM_ENDPOINT = 'https://formsubmit.co/ajax/borothomaxwell@gmail.com';
-
         function showModal(ok, title, messageHtml, fallbackHref) {
             const icon = document.getElementById('modalIcon');
             icon.className = ok
@@ -667,25 +664,16 @@
             document.getElementById('successModal').classList.remove('hidden');
         }
 
-        async function handleAcceptance(event) {
+        // Standard (non-AJAX) FormSubmit POST: this is the mode in which FormSubmit sends the signer a confirmation email.
+        // FormSubmit shows a short "I'm not a robot" page, then returns the visitor here (see _next below).
+        function handleAcceptance(event) {
             event.preventDefault();
-            const form = event.target;
-            const btn = form.querySelector('button[type="submit"]');
             const name = document.getElementById('signerName').value.trim();
             const email = document.getElementById('signerEmail').value.trim();
             const pkg = document.getElementById('selectedPackageInput').value;
             const branch = document.getElementById('signerBranch').value.trim() || 'Not specified';
 
-            const label = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
-
-            const mailtoBody = 'Name: ' + name + '\nEmail: ' + email + '\nBranch/Location: ' + branch +
-                '\nSelected package: ' + pkg + '\n\nScenery Guest Houses accepts this IT support proposal.';
-            const mailto = 'mailto:borothomaxwell@gmail.com?subject=' +
-                encodeURIComponent('Proposal acceptance: Scenery Guest Houses') + '&body=' + encodeURIComponent(mailtoBody);
-
-            const payload = {
+            const fields = {
                 name: name,
                 email: email,
                 package: pkg,
@@ -693,53 +681,48 @@
                 property: 'Scenery Guest Houses',
                 _subject: 'ACCEPTED: Scenery Guest Houses - ' + pkg,
                 _template: 'table',
-                _captcha: 'false',
                 _autoresponse:
                     'Hi ' + name + ',\n\n' +
                     'Thank you for accepting the IT Support proposal for Scenery Guest Houses.\n\n' +
-                    'Package selected: ' + pkg + '\n' +
-                    'Branch / location: ' + branch + '\n\n' +
                     'What happens next:\n' +
                     '1. We will be in touch shortly to schedule the on-site assessment visit.\n' +
                     '2. We confirm supported devices, service hours and priorities together.\n' +
                     '3. Your dedicated technician is assigned and the retainer starts.\n\n' +
-                    'If any detail above is wrong, just reply to this email.\n\n' +
+                    'If any detail below is wrong, just reply to this email.\n\n' +
                     'Warm regards,\nMaxwell Rethabile Borotho\niNSIGHTS BI & Analytics\ninsights.co.ls | +266 6949 0014'
             };
-
-            try {
-                const res = await fetch(FORM_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok || data.success === false || data.success === 'false') {
-                    throw new Error(data.message || 'Send failed');
-                }
-                showModal(true, 'Proposal Accepted!',
-                    'Thank you, <strong>' + name.replace(/</g, '&lt;') + '</strong>. Your acceptance of the <strong>' + pkg +
-                    '</strong> package has been sent to iNSIGHTS, and a confirmation email is on its way to <strong>' +
-                    email.replace(/</g, '&lt;') + '</strong>.');
-                form.reset();
-            } catch (err) {
-                let reason = (err && err.message) ? err.message : 'Unknown error';
-                if (location.protocol === 'file:') {
-                    reason = 'This page is open as a local file. Automatic sending only works once the page is hosted online.';
-                } else if (/activat/i.test(reason)) {
-                    reason = 'The form needs one-time activation: check the inbox of borothomaxwell@gmail.com for an activation email from FormSubmit, click it, then submit again.';
-                } else if (reason === 'Failed to fetch') {
-                    reason = 'The sending service could not be reached (network or blocker).';
-                }
-                showModal(false, 'We could not send that automatically',
-                    'Nothing has been submitted yet. Please use the button below to email your acceptance to iNSIGHTS directly, or call +266 6949 0014.' +
-                    '<span class="block mt-3 text-xs text-slate-400">Reason: ' + String(reason).replace(/</g, '&lt;') + '</span>',
-                    mailto);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = label;
+            if (location.protocol !== 'file:') {
+                fields._next = location.origin + location.pathname +
+                    '?accepted=1&n=' + encodeURIComponent(name) + '&p=' + encodeURIComponent(pkg);
             }
+
+            const f = document.createElement('form');
+            f.method = 'POST';
+            f.action = 'https://formsubmit.co/borothomaxwell@gmail.com';
+            Object.keys(fields).forEach(function (k) {
+                const i = document.createElement('input');
+                i.type = 'hidden'; i.name = k; i.value = fields[k];
+                f.appendChild(i);
+            });
+            document.body.appendChild(f);
+            const btn = event.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            f.submit();
         }
+
+        // Shown when FormSubmit sends the visitor back after a successful submission
+        (function () {
+            const q = new URLSearchParams(location.search);
+            if (q.get('accepted') !== '1') return;
+            const esc = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+            const n = esc(q.get('n')), p = esc(q.get('p'));
+            showModal(true, 'Proposal Accepted!',
+                'Thank you' + (n ? ', <strong>' + n + '</strong>' : '') + '. Your acceptance' +
+                (p ? ' of the <strong>' + p + '</strong> package' : '') +
+                ' has been sent to iNSIGHTS, and a confirmation email is on its way to you.');
+            history.replaceState(null, '', location.pathname);
+        })();
 
         function closeModal() {
             document.getElementById('successModal').classList.add('hidden');
